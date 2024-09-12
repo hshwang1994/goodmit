@@ -1,0 +1,44 @@
+# TanzuKubernetesCluster (TKC)는 v1alpha3 API를 사용하며, Cluster API(CAPI)의 추상화된 레이어로 작동합니다
+# 이로 인해 사용자는 ClusterClass를 직접 지정할 필요 없이 간단한 구성을 통해 클러스터를 생성할 수 있습니다.
+# 반면, CAPI Cluster는 v1beta1 API를 사용하는 순수한 Cluster API 기반 클러스터로, 사용자가 ClusterClass와 변수를 직접 관리하고 정의할 수 있습니다.
+# TKC는 사용 편의성을, CAPI Cluster는 유연성과 세부 제어를 제공합니다.
+
+# 클러스터 v1beta1 API 사용 : https://docs.vmware.com/kr/VMware-vSphere/8.0/vsphere-with-tanzu-tkg/GUID-CDF0C2A1-54E8-483F-935A-71D64CA7921C.html#GUID-CDF0C2A1-54E8-483F-935A-71D64CA7921C
+#TanzuKubernetesCluster v1alpha3 API 사용 : https://docs.vmware.com/kr/VMware-vSphere/8.0/vsphere-with-tanzu-tkg/GUID-2018E93C-589C-45ED-BC75-B7C01995B3F2.html#GUID-2018E93C-589C-45ED-BC75-B7C01995B3F2
+# Tanzu Kubernetes Cluster - v1alpha3 API 예시
+#
+# 이 예시는 v1alpha3 API를 사용하여 기본 TanzuKubernetesCluster를 생성하는 최소 구성을 나타냅니다.
+#
+# 필수 설정 요소:
+# 1. topology:
+#    - controlPlane: 클러스터의 컨트롤 플레인 노드 수, VM 클래스, 스토리지 클래스를 설정합니다.
+#    - nodePools: 워커 노드의 개수와 자원 설정을 정의합니다.
+#
+# 2. TKR (Tanzu Kubernetes Release):
+#    - tkr.reference.name: 제어부 및 워커 노드에서 사용할 TKR 버전을 지정합니다.
+#
+# 유의사항:
+# - 기본 네트워크 및 스토리지 설정이 이미 제공되므로, 별도의 네트워크 설정은 포함하지 않았습니다.
+# - Control Plane과 Node Pool의 VM 클래스 및 스토리지 클래스는 기본적으로 동일한 값으로 설정됩니다.
+
+apiVersion: run.tanzu.vmware.com/v1alpha3  # 필수! API 버전 (v1alpha3 사용)
+kind: TanzuKubernetesCluster               # 필수! 리소스 종류 (TanzuKubernetesCluster)
+metadata:
+  name: tkc-default                        # 필수! 클러스터 이름 (사용자가 정의)
+  namespace: tkg-cluster-ns                 # 필수! 클러스터가 배치될 Kubernetes 네임스페이스
+
+spec:
+  topology:
+    controlPlane:
+      replicas: 3                          # 필수! 컨트롤 플레인 노드의 개수 (1 또는 3, 프로덕션 환경은 3 권장)
+      vmClass: guaranteed-medium            # 필수! 컨트롤 플레인 노드에서 사용할 VM 클래스 (노드의 CPU, 메모리 등 자원 설정)
+      storageClass: tkg-storage-policy      # 필수! 컨트롤 플레인 노드에서 사용할 스토리지 클래스
+      tkr:
+        reference:
+          name: v1.25.7---vmware.3-fips.1-tkg.1  # 필수! 컨트롤 플레인 노드와 워커 노드에 사용할 Tanzu Kubernetes Release(TKR) 버전
+
+    nodePools:
+      - name: worker                        # 필수! 워커 노드 풀의 이름
+        replicas: 3                         # 필수! 워커 노드의 개수 (0 이상, 환경에 따라 설정)
+        vmClass: guaranteed-medium          # 필수! 워커 노드에서 사용할 VM 클래스
+        storageClass: tkg-storage-policy    # 필수! 워커 노드에서 사용할 스토리지 클래스
