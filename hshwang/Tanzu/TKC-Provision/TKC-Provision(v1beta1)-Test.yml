@@ -1,0 +1,61 @@
+apiVersion: cluster.x-k8s.io/v1beta1  # API 버전 (v1beta1 사용)
+kind: Cluster                        # 리소스 종류 (Cluster)
+
+metadata:
+  name: v1beta1-tkc                  # 클러스터 이름 (사용자가 정의한 이름)
+  namespace: dco-namespace            # 클러스터가 배치될 Kubernetes 네임스페이스 (dco-namespace)
+
+spec:
+  clusterNetwork:                     # 클러스터 네트워크 설정
+    services:
+      cidrBlocks: ["198.51.100.0/12"] # 클러스터 서비스 VIP에 할당될 IP 범위
+    pods:
+      cidrBlocks: ["192.2.0.0/16"]    # 클러스터 Pod 네트워크에 할당될 IP 범위
+    serviceDomain: "cluster.local"     # 클러스터 내 서비스 도메인 이름 (기본값: cluster.local)
+
+  topology:
+    class: tanzukubernetescluster      # 사용할 ClusterClass (클러스터의 기본 구조 정의)
+    version: v1.30.1---vmware.1-fips-tkg.5  # 클러스터에서 사용할 Kubernetes 버전 (TKR 형식)
+
+    # 컨트롤 플레인 설정
+    controlPlane:
+      replicas: 1                     # 컨트롤 플레인 노드 수 (여기서는 1개의 노드로 설정)
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu  # 컨트롤 플레인 노드에서 사용할 OS는 Ubuntu
+
+    # 워커 노드 설정
+    workers:
+      machineDeployments:
+        - class: node-pool            # 워커 노드 풀 클래스 (노드 풀의 기본 구조 정의)
+          name: node-pool-1           # 워커 노드 풀의 이름
+          replicas: 3                 # 워커 노드 수 (3개의 워커 노드로 구성됨)
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu  # 워커 노드에서 사용할 OS는 Ubuntu
+          variables:
+            overrides:                # 기본 설정을 덮어쓰는 변수 (overrides)
+            - name: vmClass
+              value: best-effort-medium # 워커 노드 VM 자원을 'best-effort-medium'으로 설정 (CPU, 메모리 자원 크기)
+
+    variables:
+      - name: vmClass
+        value: best-effort-medium       # 기본 VM 자원 크기는 'best-effort-medium'
+      - name: storageClass
+        value: goldsp                  # 기본 스토리지 클래스는 'goldsp'
+      - name: defaultStorageClass
+        value: goldsp                  # 클러스터의 기본 스토리지 클래스는 'goldsp' (Helm 차트 및 패키지에서 사용됨)
+
+      - name: nodePoolVolumes          # 워커 노드의 영구 볼륨 설정
+        value:
+          - name: containerd
+            capacity:
+              storage: 10Gi            # containerd 디스크 용량을 10Gi로 설정
+            mountPath: /var/lib/containerd # containerd 볼륨 마운트 경로
+            storageClass: goldsp       # 해당 볼륨에서 사용할 스토리지 클래스
+          
+          - name: kubelet
+            capacity:
+              storage: 10Gi            # kubelet 디스크 용량을 10Gi로 설정
+            mountPath: /var/lib/kubelet # kubelet 볼륨 마운트 경로
+            storageClass: goldsp       # 해당 볼륨에서 사용할 스토리지 클래스
