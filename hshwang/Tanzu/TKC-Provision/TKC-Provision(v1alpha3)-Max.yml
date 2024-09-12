@@ -1,0 +1,87 @@
+# TanzuKubernetesCluster (TKC)는 v1alpha3 API를 사용하며, Cluster API(CAPI)의 추상화된 레이어로 작동합니다
+# 이로 인해 사용자는 ClusterClass를 직접 지정할 필요 없이 간단한 구성을 통해 클러스터를 생성할 수 있습니다.
+# 반면, CAPI Cluster는 v1beta1 API를 사용하는 순수한 Cluster API 기반 클러스터로, 사용자가 ClusterClass와 변수를 직접 관리하고 정의할 수 있습니다.
+# TKC는 사용 편의성을, CAPI Cluster는 유연성과 세부 제어를 제공합니다.
+
+# 클러스터 v1beta1 API 사용 : https://docs.vmware.com/kr/VMware-vSphere/8.0/vsphere-with-tanzu-tkg/GUID-CDF0C2A1-54E8-483F-935A-71D64CA7921C.html#GUID-CDF0C2A1-54E8-483F-935A-71D64CA7921C
+#TanzuKubernetesCluster v1alpha3 API 사용 : https://docs.vmware.com/kr/VMware-vSphere/8.0/vsphere-with-tanzu-tkg/GUID-2018E93C-589C-45ED-BC75-B7C01995B3F2.html#GUID-2018E93C-589C-45ED-BC75-B7C01995B3F2
+
+# Tanzu Kubernetes Cluster YAML 설정 파일
+# 필수 항목:
+#  - name: 클러스터 이름
+#  - namespace: 클러스터를 배치할 vSphere Namespace
+#  - controlPlane: 컨트롤 플레인 노드 수 및 자원 설정
+#  - nodePools: 워커 노드 풀 설정
+# 선택 항목:
+#  - annotations: OS 이미지 설정
+#  - storageClass, volumes: 스토리지 및 볼륨 설정
+#  - network 설정: 네트워크 구성 및 CNI 설정
+#  - proxy 설정: 클러스터 내부의 프록시 설정
+#  - trust 설정: 추가 인증서 구성
+
+apiVersion: run.tanzu.vmware.com/v1alpha3  # API 버전 (v1alpha3 사용)
+kind: TanzuKubernetesCluster               # 리소스 종류 (Tanzu Kubernetes Cluster)
+
+metadata:
+  name: string                             # 필수! 클러스터의 이름
+  namespace: string                        # 필수! 클러스터가 배치될 vSphere 네임스페이스
+  annotations:
+    run.tanzu.vmware.com/resolve-os-image: os-name=string  # 선택! 기본 OS 대신 다른 OS를 사용할 경우 설정 (Ubuntu 등)
+
+spec:
+  topology:                                # 클러스터의 토폴로지 (구조) 설정
+    controlPlane:                          # 컨트롤 플레인 설정
+      replicas: int32                      # 필수! 컨트롤 플레인 노드 수 (1 또는 3)
+      vmClass: string                      # 필수! 컨트롤 플레인 노드에 할당할 VM 자원 크기 (CPU, 메모리)
+      storageClass: string                 # 필수! 컨트롤 플레인 노드에 할당할 스토리지 클래스
+      volumes:                             # 선택! 컨트롤 플레인 노드에 추가할 영구 볼륨 설정
+        - name: string                     # 필수! 볼륨의 이름
+          mountPath: string                # 필수! 볼륨이 마운트될 경로
+          capacity:
+            storage: size in GiB           # 선택! 볼륨 크기 (GiB 단위)
+      tkr:
+        reference:
+          name: string                     # 필수! TKR 버전 (Kubernetes 버전) 지정
+      nodeDrainTimeout: string              # 선택! 노드가 드레인되기 전에 대기할 시간
+
+    nodePools:                             # 워커 노드 풀 설정 (여러 개 가능)
+      - name: string                       # 필수! 워커 노드 풀 이름
+        failureDomain: string              # 선택! 멀티존 설정 시 사용되는 vSphere Zone 이름
+        labels: map[string]string          # 선택! 노드를 분류하기 위한 레이블 설정
+        taints:                            # 선택! 노드에 taints를 추가하여 특정 워크로드만 스케줄링 가능
+          - key: string                    # 필수! 태인트의 키
+            value: string                  # 필수! 태인트의 값
+            effect: string                 # 필수! 태인트 효과 (NoSchedule, PreferNoSchedule, NoExecute)
+        replicas: int32                    # 필수! 워커 노드 수 (0 ~ 150)
+        vmClass: string                    # 필수! 워커 노드에 할당할 VM 자원 크기
+        storageClass: string               # 필수! 워커 노드에 할당할 스토리지 클래스
+        volumes:                           # 선택! 워커 노드에 추가할 영구 볼륨 설정
+          - name: string                   # 필수! 볼륨의 이름
+            mountPath: string              # 필수! 볼륨이 마운트될 경로
+            capacity:
+              storage: size in GiB         # 선택! 볼륨 크기 (GiB 단위)
+        tkr:
+          reference:
+            name: string                   # 필수! TKR 버전 (Kubernetes 버전) 지정
+        nodeDrainTimeout: string            # 선택! 노드가 드레인되기 전에 대기할 시간
+
+  settings:                                # 클러스터의 추가 설정
+    storage:                               # 스토리지 관련 설정
+      classes: [string]                    # 선택! 사용할 스토리지 클래스 목록 (컨테이너 워크로드용)
+      defaultClass: string                 # 선택! 기본 스토리지 클래스 설정 (Helm 차트 및 Tanzu 패키지에서 사용)
+    network:                               # 네트워크 관련 설정
+      cni:                                 # 선택! CNI 플러그인 설정
+        name: string                       # 필수! 사용할 CNI 플러그인 (antrea, calico, antrea-nsx-routed)
+      pods:
+        cidrBlocks: [string]               # 선택! Pod 네트워크 범위 (CIDR)
+      services:
+        cidrBlocks: [string]               # 선택! 서비스 네트워크 범위 (CIDR)
+      serviceDomain: string                # 선택! 클러스터의 서비스 도메인 이름 (기본값: cluster.local)
+      proxy:                               # 선택! 프록시 설정
+        httpProxy: string                  # 선택! HTTP 프록시 URL
+        httpsProxy: string                 # 선택! HTTPS 프록시 URL
+        noProxy: [string]                  # 선택! 프록시에서 제외할 도메인 또는 IP 범위
+      trust:                               # 선택! 클러스터에 대한 추가 인증서 설정
+        additionalTrustedCAs:              # 선택! 신뢰할 수 있는 추가 인증서 설정
+          - name: string                   # 필수! 추가 인증서의 이름
+            data: string                   # 필수! base64로 인코딩된 인증서 데이터
