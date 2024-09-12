@@ -1,0 +1,65 @@
+# TanzuKubernetesCluster (TKC)는 v1alpha3 API를 사용하며, Cluster API(CAPI)의 추상화된 레이어로 작동합니다
+# 이로 인해 사용자는 ClusterClass를 직접 지정할 필요 없이 간단한 구성을 통해 클러스터를 생성할 수 있습니다.
+# 반면, CAPI Cluster는 v1beta1 API를 사용하는 순수한 Cluster API 기반 클러스터로, 사용자가 ClusterClass와 변수를 직접 관리하고 정의할 수 있습니다.
+# TKC는 사용 편의성을, CAPI Cluster는 유연성과 세부 제어를 제공합니다.
+
+# 클러스터 v1beta1 API 사용 : https://docs.vmware.com/kr/VMware-vSphere/8.0/vsphere-with-tanzu-tkg/GUID-CDF0C2A1-54E8-483F-935A-71D64CA7921C.html#GUID-CDF0C2A1-54E8-483F-935A-71D64CA7921C
+#TanzuKubernetesCluster v1alpha3 API 사용 : https://docs.vmware.com/kr/VMware-vSphere/8.0/vsphere-with-tanzu-tkg/GUID-2018E93C-589C-45ED-BC75-B7C01995B3F2.html#GUID-2018E93C-589C-45ED-BC75-B7C01995B3F2
+
+# Tanzu Kubernetes Cluster - v1beta1 API 예시
+#
+# 이 예시는 v1beta1 API를 사용하여 기본 ClusterClass를 기반으로 클러스터를 생성하는 데 필요한 최소 구성을 나타냅니다.
+#
+# 필수 사항:
+# - v1beta1 API를 사용할 경우 반드시 clusterNetwork를 지정해야 합니다. 기본 네트워크 설정이 없기 때문에 Pod 및 서비스 IP 범위를 명시해야 합니다.
+# - 기본 ClusterClass는 'tanzukubernetescluster'로 설정되어 있습니다.
+# - 최소한 VM 클래스 및 스토리지 클래스를 variables 섹션에 지정해야 합니다.
+#
+# 선택 사항:
+# - defaultStorageClass 변수를 사용하여 기본 스토리지 클래스를 지정할 수 있습니다. Tanzu 패키지 및 Helm 차트 같은 많은 워크로드에서 기본 스토리지 클래스를 필요로 하기 때문에 유용합니다.
+#
+# 유의사항:
+# - network CIDR 범위는 Supervisor 클러스터와 중첩되지 않도록 설정해야 합니다.
+
+apiVersion: cluster.x-k8s.io/v1beta1  # 필수! API 버전 (v1beta1 사용)
+kind: Cluster                        # 필수! 리소스 종류 (Cluster)
+
+metadata:
+  name: cluster-default               # 필수! 클러스터 이름 (사용자가 정의)
+  namespace: tkg-cluster-ns            # 필수! 클러스터가 배치될 Kubernetes 네임스페이스
+
+spec:
+  # 클러스터 네트워크 설정 (필수! 기본값 없음)
+  clusterNetwork:
+    services:
+      cidrBlocks: ["198.51.100.0/12"]  # 필수! 서비스 VIP에 할당될 네트워크 범위 (Supervisor와 중첩되지 않도록 설정)
+    pods:
+      cidrBlocks: ["192.0.2.0/16"]     # 필수! Pod 네트워크에 할당될 네트워크 범위 (Supervisor와 중첩되지 않도록 설정)
+    serviceDomain: "cluster.local"     # 선택! 클러스터 내 서비스에 대한 도메인 이름 (기본값: "cluster.local")
+
+  # 클러스터 토폴로지 설정
+  topology:
+    class: tanzukubernetescluster       # 필수! 사용할 ClusterClass 이름 (클러스터의 구조 정의)
+    version: v1.26.13---vmware.1-fips.1-tkg.3  # 필수! 클러스터에서 사용할 Kubernetes 버전 (TKR 형식)
+
+    # 컨트롤 플레인 설정
+    controlPlane:
+      replicas: 3                       # 필수! 컨트롤 플레인 노드 수 (1 또는 3, 프로덕션 환경에서는 3 권장)
+
+    # 워커 노드 설정
+    workers:
+      machineDeployments:
+        - class: node-pool              # 필수! 노드 풀 클래스 (노드 풀의 기본 구조를 정의)
+          name: node-pool-1             # 필수! 노드 풀 이름 (사용자가 정의)
+          replicas: 3                   # 필수! 워커 노드 수 (0 이상, 워크로드 처리에 필요한 노드 수 설정)
+
+  # 클러스터 사용자 정의 변수
+  variables:
+    - name: vmClass
+      value: guaranteed-medium           # 필수! 노드에 사용할 VM 클래스 (노드의 자원 설정: CPU, 메모리 등)
+    
+    - name: storageClass
+      value: tkg-storage-policy          # 필수! 노드에 사용할 스토리지 클래스 (데이터 저장 방식 설정)
+    
+    - name: defaultStorageClass
+      value: tkg-storage-policy          # 선택! 기본 스토리지 클래스 (Tanzu 패키지 및 Helm 차트에서 사용되는 기본 스토리지)
