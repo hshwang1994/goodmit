@@ -1,93 +1,105 @@
-#! The FQDN for accessing Harbor admin UI and Registry service.
-hostname: harbor.com
-#! The network port of the Envoy service in Contour or other Ingress Controller.
+# Harbor 서비스에 대한 중요한 설정 값들이 아래에 정의되어 있습니다. 
+# 필수적으로 환경에 맞게 변경해야 하는 항목들은 아래에 나열된 설명을 참고하여 수정해주세요.
+#
+# 변경이 필요한 항목:
+# 1. hostname: Harbor에 접근할 도메인(FQDN)을 환경에 맞게 변경하세요.
+# 2. harborAdminPassword: 보안상 요구되는 초기 관리자 비밀번호로 변경하세요.
+# 3. secretKey: 16자리 시크릿 키를 보안 요구사항에 맞게 변경하세요.
+# 4. database.password: 데이터베이스 비밀번호를 보안 요구사항에 맞게 변경하세요.
+# 5. 각 컴포넌트(core, jobservice, registry)의 secret 값: 컴포넌트 간 보안 통신을 위해 필요한 키입니다. 보안 요구사항에 맞게 설정하세요.
+
+# Harbor 서비스에 접근하기 위한 FQDN 및 네트워크 설정
+# 이 섹션에서는 Harbor UI 및 레지스트리에 사용할 도메인과 포트를 정의합니다.
+# 수정 가능: Harbor에 접근할 도메인을 환경에 맞게 변경할 수 있습니다.
+hostname: harbor.hshwang.local  # FQDN (Fully Qualified Domain Name)을 변경 가능
+
+# 포트 설정: 기본적으로 443 포트를 사용하여 HTTPS를 통해 서비스에 접근합니다.
+# 수정 가능: 필요시 HTTPS 포트를 변경할 수 있습니다.
 port:
-  https: 443
+  https: 443  # 기본 HTTPS 포트 (필요시 변경 가능)
 
-#! Do not change tlsSecretLabels. It is required for TKG  integration to work.
+# TKG와의 통합을 위한 필수 설정 (변경하지 마세요)
 tlsCertificate:
-  tlsSecretLabels: {"managed-by": "vmware-vRegistry"}
+  tlsSecretLabels: {"managed-by": "vmware-vRegistry"}  # 이 부분은 수정하지 말 것
 
-#! [Required] The initial password of Harbor admin.
-harborAdminPassword: VMware1!
+# Harbor Admin 초기 비밀번호
+# 수정 가능: 초기 비밀번호를 보안 요구사항에 맞게 변경할 수 있습니다.
+harborAdminPassword: VMware1!  # 관리자 초기 비밀번호 (필요시 변경 가능)
 
-#! [Required] The secret key used for encryption. Must be a string of 16 chars.
-secretKey: 0123456789ABCDEF
+# 데이터 암호화를 위한 16자리 시크릿 키
+# 수정 가능: 암호화 키를 보안 요구사항에 맞게 변경할 수 있습니다. 반드시 16자리여야 합니다.
+secretKey: VMware1!VMware1!  # 데이터 암호화용 시크릿 키 (필요시 변경 가능)
 
+# 데이터베이스 설정: Harbor는 기본적으로 내부 Postgres 데이터베이스를 사용합니다.
+# 만약 외부 데이터베이스를 사용할 경우, 이 설정을 "external"로 변경하고 외부 연결 정보를 추가할 수 있습니다.
 database:
-  #! if external database is used, set "type" to "external" 
-  #! and fill the connection information in "external" section
-  type: internal
-  #! [Required] The initial password of the internal postgres database.
-  #! if external database is used, please fill the external.password
-  password: VMware1!
+  type: internal  # 내부 데이터베이스 사용 (external로 변경 가능)
+  password: VMware1!  # Postgres 데이터베이스 비밀번호 (필요시 변경 가능)
 
+# 설명: Harbor의 데이터베이스는 컨테이너 이미지, 사용자 정보 등 Harbor에서 사용하는 데이터를 저장합니다.
+
+# Harbor Core 설정
 core:
-  replicas: 1
-  #! [Required] Secret is used when core server communicates with other components.
-  secret: VMware1!
-  #! [Required] The XSRF key. Must be a string of 32 chars.
-  xsrfKey: 0123456789ABCDEF0123456789ABCDEF
-jobservice:
-  replicas: 1
-  #! [Required] Secret is used when job service communicates with other components.
-  secret: VMware1!
-registry:
-  replicas: 1
-  #! [Required] Secret is used to secure the upload state from client
-  #! and registry storage backend.
-  #! See: https://github.com/docker/distribution/blob/master/docs/configuration.md#http
-  secret: VMware1!
+  replicas: 1  # Core의 복제본 수 (고가용성이 필요하면 복제본을 늘릴 수 있습니다)
+  secret: MyCoreSecretKey  # Core 컴포넌트 간 통신 보안 키 (필요시 변경 가능)
+  xsrfKey: 0123456789ABCDEF0123456789ABCDEF  # XSRF 보호를 위한 32자리 키 (필요시 변경 가능)
 
-#! The persistence is always enabled and a default StorageClass
-#! is needed in the k8s cluster to provision volumes dynamically.
-#! Specify another StorageClass in the "storageClass" or set "existingClaim"
-#! if you have already existing persistent volumes to use
-#!
-#! For storing images and charts, you can also use "azure", "gcs", "s3",
-#! "swift" or "oss". Set it in the "imageChartStorage" section
+# 설명: Core는 Harbor의 핵심 서비스로, UI 및 API 요청을 처리하며 다른 구성 요소와 상호작용합니다.
+
+# Job Service 설정
+jobservice:
+  replicas: 1  # Job Service의 복제본 수 (필요시 복제본을 늘릴 수 있습니다)
+  secret: MyJobServiceSecretKey  # Job Service 간 통신을 위한 보안 키 (필요시 변경 가능)
+
+# 설명: Job Service는 이미지 스캔, 데이터베이스 작업, 백업 등 백그라운드에서 실행되는 작업을 처리합니다.
+
+# Registry 설정
+registry:
+  replicas: 1  # Registry의 복제본 수 (필요시 복제본을 늘릴 수 있습니다)
+  secret: MyRegistrySecretKey  # Registry와 클라이언트 간 통신 보안 키 (필요시 변경 가능)
+
+# 설명: Registry는 Docker 컨테이너 이미지를 저장하고 관리하는 역할을 하며, 클라이언트가 이미지를 업로드하거나 다운로드할 수 있도록 합니다.
+
+# 스토리지 및 퍼시스턴스 설정
 persistence:
   persistentVolumeClaim:
     registry:
-      #! Use the existing PVC which must be created manually before bound,
-      #! and specify the "subPath" if the PVC is shared with other components
-      existingClaim: ""
-      #! Specify the "storageClass" used to provision the volume. Or the default
-      #! StorageClass will be used(the default).
-      #! Set it to "-" to disable dynamic provisioning
-      storageClass: "K8S-Storage-Policy"
-      subPath: ""
-      accessMode: ReadWriteOnce
-      size: 10Gi
+      existingClaim: ""  # 기존 PVC를 사용할 경우 여기서 지정합니다.
+      storageClass: "goldsp"  # 사용하려는 스토리지 클래스를 지정 (필요시 변경 가능)
+      accessMode: ReadWriteOnce  # 스토리지 접근 모드 (필요시 변경 가능)
+      size: 20Gi  # 레지스트리 스토리지 크기 (필요시 변경 가능)
     jobservice:
       jobLog:
         existingClaim: ""
-        storageClass: "K8S-Storage-Policy"
-        subPath: ""
+        storageClass: "goldsp"
         accessMode: ReadWriteOnce
-        size: 1Gi
+        size: 2Gi  # Job Service 로그 저장 스토리지 크기 (필요시 변경 가능)
     database:
       existingClaim: ""
-      storageClass: "K8S-Storage-Policy"
-      subPath: ""
+      storageClass: "goldsp"
       accessMode: ReadWriteOnce
-      size: 1Gi
+      size: 2Gi  # 데이터베이스 스토리지 크기 (필요시 변경 가능)
     redis:
       existingClaim: ""
-      storageClass: "K8S-Storage-Policy"
-      subPath: ""
+      storageClass: "goldsp"
       accessMode: ReadWriteOnce
-      size: 1Gi
+      size: 2Gi  # Redis 스토리지 크기 (필요시 변경 가능)
     trivy:
       existingClaim: ""
-      storageClass: "K8S-Storage-Policy"
-      subPath: ""
+      storageClass: "goldsp"
       accessMode: ReadWriteOnce
-      size: 5Gi
-  
-#! The metrics used by core, registry and exporter
+      size: 10Gi  # Trivy 스토리지 크기 (필요시 변경 가능)
+
+# 설명:
+# - Registry는 이미지를 저장하는 공간을 사용합니다.
+# - Job Service는 백그라운드 작업에 대한 로그를 저장합니다.
+# - 데이터베이스는 Harbor의 데이터를 저장합니다.
+# - Redis는 캐시 저장소로 사용됩니다.
+# - Trivy는 이미지 취약성 스캔 결과를 저장합니다.
+
+# 메트릭 설정
 metrics:
-  enabled: true
+  enabled: true  # 메트릭 수집을 활성화할지 여부 (활성화 상태 유지 권장)
   core:
     path: /metrics
     port: 8001
@@ -98,16 +110,13 @@ metrics:
     path: /metrics
     port: 8001
 
-#! Default [] is equivalent to have both ["IPv4","IPv6"]. Or you can choose one of ["IPv4"] or ["IPv6"]
-network:
-  ipFamilies: ["IPv4"]
+# 설명: 메트릭 설정을 통해 각 Harbor 컴포넌트의 성능 및 상태 데이터를 수집할 수 있으며, Prometheus 등과 같은 모니터링 시스템에서 활용할 수 있습니다.
 
-#! cache layer configurations
-#! if this feature enabled, harbor will cache the resource
-#! `project/project_metadata/repository/artifact/manifest` in the redis
-#! which help to improve the performance of high concurrent pulling manifest.
+# 네트워크 설정 (IPv4 사용)
+network:
+  ipFamilies: ["IPv4"]  # 필요에 따라 IPv6 추가 가능
+
+# 캐시 설정 (기본값: 비활성화)
 cache:
-  #! default is not enabled.
-  enabled: false
-  #! default keep cache for one day.
-  expireHours: 24
+  enabled: false  # 캐시 기능 활성화 여부 (필요시 true로 변경 가능)
+  expireHours: 24  # 캐시 유지 시간 (필요시 조정 가능)
