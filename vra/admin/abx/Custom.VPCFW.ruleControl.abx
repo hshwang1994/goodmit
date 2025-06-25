@@ -1,0 +1,24 @@
+---
+exportVersion: "1"
+exportId: "8a7480db96340746019710eb94814fbc"
+name: "Custom.VPCFW.ruleControl"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  vpcfwId: ""
+  vpcfwRules:
+  - id: ""
+    action: ""
+    source: []
+    destination: []
+    tcpServices: []
+    udpServices: []
+    sequenceNumber: 0
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "on-prem"
+configuration:
+  const_azure-system_managed_identity: false
+memoryInMB: 300
+runtimeVersion: "3.10"
