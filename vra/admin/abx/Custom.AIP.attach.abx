@@ -1,0 +1,18 @@
+---
+exportVersion: "1"
+exportId: "8a7480db96340746019636ea69170a6c"
+name: "Custom.AIP.attach"
+runtime: "python"
+entrypoint: "handler"
+description: "BVP from [20250414-142318] to [20250415-135242]"
+inputs:
+  computeLink: ""
+  interfaceLink: ""
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "on-prem"
+configuration:
+  const_azure-system_managed_identity: false
+memoryInMB: 300
+runtimeVersion: "3.10"
