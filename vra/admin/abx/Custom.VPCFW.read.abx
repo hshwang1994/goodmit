@@ -1,0 +1,16 @@
+---
+exportVersion: "1"
+exportId: "8a7480db963407460196a80d9d1b7f7e"
+name: "Custom.VPCFW.read"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  target: "World"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "on-prem"
+configuration:
+  const_azure-system_managed_identity: false
+memoryInMB: 300
+runtimeVersion: "3.10"
