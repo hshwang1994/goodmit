@@ -1,0 +1,15 @@
+---
+exportVersion: "1"
+exportId: "8a7480db96340746019636ea6a9d0a71"
+name: "Custom.NFS.read"
+runtime: "python"
+entrypoint: "handler"
+description: "BVP from [20250414-142318] to [20250415-135242]"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "on-prem"
+configuration:
+  const_azure-system_managed_identity: false
+memoryInMB: 300
+runtimeVersion: "3.10"
