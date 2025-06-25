@@ -1,0 +1,14 @@
+---
+exportVersion: "1"
+exportId: "8a7480db9634074601971fa3f18945ef"
+name: "Custom.AVILB.delete"
+runtime: "python"
+entrypoint: "handler"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "on-prem"
+configuration:
+  const_azure-system_managed_identity: false
+memoryInMB: 200
+runtimeVersion: "3.10"
